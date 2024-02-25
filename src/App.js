@@ -6,27 +6,47 @@ function App() {
   const [messageInput, setMessageInput] = useState('');
   const [idInput, setIdInput] = useState('');
 
-  const socket = new WebSocket('ws://localhost:8080');
+  const ws = new WebSocket('ws://localhost:8080');
+
+  // Make the function wait until the connection is made...
+  const waitForSocketConnection = (socket, callback) => {
+    setTimeout(
+      function () {
+        if (socket.readyState === 1) {
+          console.log("Connection is made")
+          if (callback != null) {
+            callback();
+          }
+        } else {
+          console.log("wait for connection...")
+          waitForSocketConnection(socket, callback);
+        }
+
+      }, 5); // wait 5 milisecond for the connection...
+  }
 
   const sendMessage = () => {
-    if (messageInput.trim() !== '') {
-      const message = {
-        type: "message",
-        data: idInput + ": " + messageInput,
-        timestamp: new Date().toISOString(),
-      };
-      socket.send(JSON.stringify(message));
-      setMessageInput('');
-    }
+
+    waitForSocketConnection(ws, function () {
+      if (messageInput.trim() !== '') {
+        const message = {
+          type: "message",
+          data: idInput + ": " + messageInput,
+          timestamp: new Date().toISOString(),
+        };
+        ws.send(JSON.stringify(message));
+        setMessageInput('');
+      }
+    });
   };
 
   useEffect(() => {
 
-    socket.onopen = () => {
+    ws.onopen = () => {
       console.log('WebSocket connection established.');
     };
 
-    socket.onmessage = (event) => {
+    ws.onmessage = (event) => {
       const receivedMessage = JSON.parse(event.data);
       setMessages([...messages, receivedMessage]);
     };
