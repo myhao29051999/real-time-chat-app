@@ -4,57 +4,63 @@ import './App.css';
 function App() {
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
+  const [idInput, setIdInput] = useState('');
 
   const socket = new WebSocket('ws://localhost:8080');
 
   const sendMessage = () => {
     if (messageInput.trim() !== '') {
       const message = {
-        text: messageInput,
+        type: "message",
+        data: idInput + ": " + messageInput,
         timestamp: new Date().toISOString(),
       };
-      //socket.send(messageInput);
+      socket.send(JSON.stringify(message));
       setMessageInput('');
     }
   };
- 
-  useEffect(() => {
-    socket.onopen = () => {
-      console.log('WebSocket Client Connected');
-    };
-  
-    socket.onmessage = (event) => {
-      console.log("event,")
-        const receivedMessage = event.data;
-        setMessages([...messages, receivedMessage]);
-     
-    };
-  
-    //return () => {
-    //  socket.close();
-    //};
-  }, []);
 
+  useEffect(() => {
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established.');
+    };
+
+    socket.onmessage = (event) => {
+      const receivedMessage = JSON.parse(event.data);
+      setMessages([...messages, receivedMessage]);
+    };
+
+  }, [messages]);
 
   return (
     <div className="App">
+      <div className="id-input">
+        <input
+          type="text"
+          placeholder="Input your name here"
+          value={idInput}
+          onChange={(e) => setIdInput(e.target.value)}
+        />
+      </div>
+      <div className="chat-input">
+        <input
+          type="text"
+          placeholder="Type your message..."
+          value={messageInput}
+          onChange={(e) => setMessageInput(e.target.value)}
+        />
+        <button onClick={sendMessage}>Send</button>
+      </div>
       <div className="chat-container">
         <div className="chat-messages">
           {messages?.map((message, index) => (
             <div key={index} className="message">
-              {message}
+              {message.data}
             </div>
           ))}
         </div>
-        <div className="chat-input">
-          <input
-            type="text"
-            placeholder="Type your message..."
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-          />
-          <button onClick={sendMessage}>Send</button>
-        </div>
+
       </div>
     </div>
   );
